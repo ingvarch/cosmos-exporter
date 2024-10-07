@@ -11,7 +11,8 @@ import (
 func TestUpdateMetrics(t *testing.T) {
 	// Create a mock server to simulate Cosmos node responses
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/block" {
+		switch r.URL.Path {
+		case "/block":
 			w.Write([]byte(`
 				{
 					"result": {
@@ -24,6 +25,21 @@ func TestUpdateMetrics(t *testing.T) {
 					}
 				}
 			`))
+		case "/net_info":
+			w.Write([]byte(`
+				{
+					"result": {
+						"n_peers": "10",
+						"peers": [
+							{"node_info": {"version": "1.0.0"}},
+							{"node_info": {"version": "1.0.0"}},
+							{"node_info": {"version": "1.1.0"}}
+						]
+					}
+				}
+			`))
+		default:
+			http.Error(w, "Not found", http.StatusNotFound)
 		}
 	}))
 	defer mockServer.Close()
@@ -35,9 +51,23 @@ func TestUpdateMetrics(t *testing.T) {
 	exporter.updateMetrics()
 
 	// Check if the highestBlock metric has the correct value
-	expected := 23921295
-	if actual := testutil.ToFloat64(exporter.highestBlock); int(actual) != expected {
-		t.Errorf("Unexpected value for highestBlock: got %v, want %v", int(actual), expected)
+	expectedHeight := 23921295
+	if actual := testutil.ToFloat64(exporter.highestBlock); int(actual) != expectedHeight {
+		t.Errorf("Unexpected value for highestBlock: got %v, want %v", int(actual), expectedHeight)
+	}
+
+	// Check if the connectedPeers metric has the correct value
+	expectedPeers := 10
+	if actual := testutil.ToFloat64(exporter.connectedPeers); int(actual) != expectedPeers {
+		t.Errorf("Unexpected value for connectedPeers: got %v, want %v", int(actual), expectedPeers)
+	}
+
+	// Check if the peersByVersion metric has the correct values
+	expectedVersions := map[string]int{"1.0.0": 2, "1.1.0": 1}
+	for version, count := range expectedVersions {
+		if actual := testutil.ToFloat64(exporter.peersByVersion.WithLabelValues(version)); int(actual) != count {
+			t.Errorf("Unexpected value for peersByVersion[%s]: got %v, want %v", version, int(actual), count)
+		}
 	}
 }
 
