@@ -19,6 +19,12 @@ func main() {
 	// Load configuration
 	cfg := config.New()
 
+	// Try to connect to the Cosmos node
+	if err := exporter.ConnectToCosmosNode(cfg); err != nil {
+		slog.Error("Failed to connect to Cosmos node", "error", err)
+		os.Exit(1)
+	}
+
 	// Create a new exporter with the Cosmos node address
 	cosmosExporter := exporter.NewCosmosExporter(cfg.CosmosNodeAddress)
 

@@ -3,7 +3,7 @@ package exporter
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -12,15 +12,6 @@ import (
 	"github.com/ingvarch/cosmos-exporter/internal/models"
 	"github.com/prometheus/client_golang/prometheus"
 )
-
-// CosmosExporter represents the structure of the Cosmos exporter
-type CosmosExporter struct {
-	highestBlock      prometheus.Gauge
-	blockTimeDrift    prometheus.Gauge
-	connectedPeers    prometheus.Gauge
-	peersByVersion    *prometheus.GaugeVec
-	cosmosNodeAddress string
-}
 
 // NewCosmosExporter creates a new instance of CosmosExporter
 func NewCosmosExporter(cosmosNodeAddress string) *CosmosExporter {
@@ -105,9 +96,14 @@ func (e *CosmosExporter) getLatestBlockInfo() (models.BlockInfo, error) {
 	if err != nil {
 		return models.BlockInfo{}, err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
 
-	body, err := ioutil.ReadAll(resp.Body)
+		}
+	}(resp.Body)
+
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return models.BlockInfo{}, err
 	}
@@ -127,9 +123,14 @@ func (e *CosmosExporter) getNetInfo() (models.NetInfo, error) {
 	if err != nil {
 		return models.NetInfo{}, err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
 
-	body, err := ioutil.ReadAll(resp.Body)
+		}
+	}(resp.Body)
+
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return models.NetInfo{}, err
 	}
