@@ -62,11 +62,11 @@ func (e *CosmosExporter) updateMetrics() {
 	if err != nil {
 		slog.Error("Error getting latest block info", "error", err)
 	} else {
-		height, err := strconv.ParseFloat(blockInfo.Result.Block.Header.Height, 64)
+		height, err := strconv.ParseInt(blockInfo.Result.Block.Header.Height, 10, 64)
 		if err != nil {
 			slog.Error("Error parsing block height", "error", err)
 		} else {
-			e.highestBlock.Set(height)
+			e.highestBlock.Set(float64(height))
 		}
 
 		e.blockTimeDrift.Set(time.Since(blockInfo.Result.Block.Header.Time).Seconds())
