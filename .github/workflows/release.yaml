@@ -1,0 +1,51 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build for Linux
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          go build -v -o cosmos-exporter-linux-${{ matrix.arch }} ./cmd/main.go
+          tar -czvf cosmos-exporter-linux-${{ matrix.arch }}.tar.gz cosmos-exporter-linux-${{ matrix.arch }}
+
+      - name: Create Release
+        if: matrix.arch == 'amd64'
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./cosmos-exporter-linux-${{ matrix.arch }}.tar.gz
+          asset_name: cosmos-exporter-linux-${{ matrix.arch }}.tar.gz
+          asset_content_type: application/gzip
