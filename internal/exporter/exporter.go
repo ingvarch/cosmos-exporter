@@ -94,24 +94,23 @@ func (e *CosmosExporter) updateMetrics() {
 func (e *CosmosExporter) getLatestBlockInfo() (models.BlockInfo, error) {
 	resp, err := http.Get(fmt.Sprintf("%s/block", e.cosmosNodeAddress))
 	if err != nil {
-		return models.BlockInfo{}, err
+		return models.BlockInfo{}, fmt.Errorf("failed to get block info: %w", err)
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Error("Error closing response body", "error", cerr)
 		}
-	}(resp.Body)
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return models.BlockInfo{}, err
+		return models.BlockInfo{}, fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	var blockInfo models.BlockInfo
 	err = json.Unmarshal(body, &blockInfo)
 	if err != nil {
-		return models.BlockInfo{}, err
+		return models.BlockInfo{}, fmt.Errorf("failed to unmarshal block info: %w", err)
 	}
 
 	return blockInfo, nil
@@ -121,24 +120,23 @@ func (e *CosmosExporter) getLatestBlockInfo() (models.BlockInfo, error) {
 func (e *CosmosExporter) getNetInfo() (models.NetInfo, error) {
 	resp, err := http.Get(fmt.Sprintf("%s/net_info", e.cosmosNodeAddress))
 	if err != nil {
-		return models.NetInfo{}, err
+		return models.NetInfo{}, fmt.Errorf("failed to get net info: %w", err)
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Error("Error closing response body", "error", cerr)
 		}
-	}(resp.Body)
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return models.NetInfo{}, err
+		return models.NetInfo{}, fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	var netInfo models.NetInfo
 	err = json.Unmarshal(body, &netInfo)
 	if err != nil {
-		return models.NetInfo{}, err
+		return models.NetInfo{}, fmt.Errorf("failed to unmarshal net info: %w", err)
 	}
 
 	return netInfo, nil

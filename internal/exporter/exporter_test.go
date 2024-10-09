@@ -13,31 +13,37 @@ func TestUpdateMetrics(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/block":
-			w.Write([]byte(`
-				{
-					"result": {
-						"block": {
-							"header": {
-								"height": "23921295",
-								"time": "2023-04-15T12:00:00Z"
-							}
-						}
-					}
-				}
-			`))
+			_, err := w.Write([]byte(`
+                {
+                    "result": {
+                        "block": {
+                            "header": {
+                                "height": "23921295",
+                                "time": "2023-04-15T12:00:00Z"
+                            }
+                        }
+                    }
+                }
+            `))
+			if err != nil {
+				t.Errorf("Error writing mock block response: %v", err)
+			}
 		case "/net_info":
-			w.Write([]byte(`
-				{
-					"result": {
-						"n_peers": "10",
-						"peers": [
-							{"node_info": {"version": "1.0.0"}},
-							{"node_info": {"version": "1.0.0"}},
-							{"node_info": {"version": "1.1.0"}}
-						]
-					}
-				}
-			`))
+			_, err := w.Write([]byte(`
+                {
+                    "result": {
+                        "n_peers": "10",
+                        "peers": [
+                            {"node_info": {"version": "1.0.0"}},
+                            {"node_info": {"version": "1.0.0"}},
+                            {"node_info": {"version": "1.1.0"}}
+                        ]
+                    }
+                }
+            `))
+			if err != nil {
+				t.Errorf("Error writing mock net_info response: %v", err)
+			}
 		default:
 			http.Error(w, "Not found", http.StatusNotFound)
 		}
@@ -75,9 +81,22 @@ func TestNewCosmosExporter(t *testing.T) {
 	cosmosNodeAddress := "http://localhost:26657"
 	exporter := NewCosmosExporter(cosmosNodeAddress)
 	if exporter == nil {
-		t.Error("NewCosmosExporter returned nil")
+		t.Fatal("NewCosmosExporter returned nil")
 	}
 	if exporter.cosmosNodeAddress != cosmosNodeAddress {
 		t.Errorf("Expected CosmosNodeAddress to be %s, but got %s", cosmosNodeAddress, exporter.cosmosNodeAddress)
+	}
+	// Add additional checks for other fields if necessary
+	if exporter.highestBlock == nil {
+		t.Error("highestBlock metric is nil")
+	}
+	if exporter.blockTimeDrift == nil {
+		t.Error("blockTimeDrift metric is nil")
+	}
+	if exporter.connectedPeers == nil {
+		t.Error("connectedPeers metric is nil")
+	}
+	if exporter.peersByVersion == nil {
+		t.Error("peersByVersion metric is nil")
 	}
 }
